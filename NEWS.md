@@ -175,6 +175,8 @@ Library improvements
   * Mutating versions of `randperm` and `randcycle` have been added:
     `randperm!` and `randcycle!` ([#22723]).
 
+  * REPL Undo via Ctrl-/ and Ctrl-_
+
 Compiler/Runtime improvements
 -----------------------------
 
