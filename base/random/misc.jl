@@ -120,7 +120,8 @@ function randsubseq!(r::AbstractRNG, S::AbstractArray, A::AbstractArray, p::Real
 end
 randsubseq!(S::AbstractArray, A::AbstractArray, p::Real) = randsubseq!(GLOBAL_RNG, S, A, p)
 
-randsubseq(r::AbstractRNG, A::AbstractArray{T}, p::Real) where {T} = randsubseq!(r, T[], A, p)
+randsubseq(r::AbstractRNG, A::AbstractArray{T}, p::Real) where {T} =
+    randsubseq!(r, T[], A, p)
 
 """
     randsubseq(A, p) -> Vector
@@ -227,8 +228,8 @@ shuffle(a::AbstractArray) = shuffle(GLOBAL_RNG, a)
 """
     randperm([rng=GLOBAL_RNG,] n::Integer)
 
-Construct a random permutation of length `n`. The optional `rng` argument specifies a random
-number generator (see [Random Numbers](@ref)).
+Construct a random permutation of length `n`. The optional `rng`
+argument specifies a random number generator (see [Random Numbers](@ref)).
 To randomly permute an arbitrary vector, see [`shuffle`](@ref)
 or [`shuffle!`](@ref).
 
@@ -423,9 +424,7 @@ julia> Base.Random.uuid_version(Base.Random.uuid4(rng))
 4
 ```
 """
-function uuid_version(u::UUID)
-    Int((u.value >> 76) & 0xf)
-end
+uuid_version(u::UUID) = Int((u.value >> 76) & 0xf)
 
 Base.convert(::Type{UInt128}, u::UUID) = u.value
 
