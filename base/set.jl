@@ -8,6 +8,9 @@ mutable struct Set{T} <: AbstractSet{T}
 end
 Set() = Set{Any}()
 
+# a set iterates its values
+values(s::AbstractSet) = s
+
 """
     Set([itr])
 

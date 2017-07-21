@@ -111,6 +111,14 @@ julia> collect(values(a))
 """
 values(a::Associative) = ValueIterator(a)
 
+"""
+    pairs(collection)
+
+Return an iterator over `(index, value)` pairs for any
+collection that maps a set of indices to a set of values.
+"""
+pairs(collection) = zip(keys(collection), values(collection))
+
 function copy(a::Associative)
     b = similar(a)
     for (k,v) in a
