@@ -1717,12 +1717,12 @@ function findmax(a)
     if isempty(a)
         throw(ArgumentError("collection must be non-empty"))
     end
-    s = start(a)
-    mi = i = 1
-    m, s = next(a, s)
-    while !done(a, s)
-        ai, s = next(a, s)
-        i += 1
+    p = pairs(a)
+    s = start(p)
+    (mi, m), s = next(p, s)
+    i = mi
+    while !done(p, s)
+        (i, ai), s = next(p, s)
         if ai > m || m!=m
             m = ai
             mi = i
@@ -1756,12 +1756,12 @@ function findmin(a)
     if isempty(a)
         throw(ArgumentError("collection must be non-empty"))
     end
-    s = start(a)
-    mi = i = 1
-    m, s = next(a, s)
-    while !done(a, s)
-        ai, s = next(a, s)
-        i += 1
+    p = pairs(a)
+    s = start(p)
+    (mi, m), s = next(p, s)
+    i = mi
+    while !done(p, s)
+        (i, ai), s = next(p, s)
         if ai < m || m!=m
             m = ai
             mi = i

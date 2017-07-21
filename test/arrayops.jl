@@ -1796,6 +1796,11 @@ s, si = findmax(S)
 @test a == b == s
 @test ai == bi == si
 
+for X in (A, B, S)
+    @test findmin(X) == findmin(Dict(pairs(X)))
+    @test findmax(X) == findmax(Dict(pairs(X)))
+end
+
 fill!(B, 2)
 @test all(x->x==2, B)
 
