@@ -87,9 +87,10 @@ complete_line(c::EmptyCompletionProvider, s) = [], true, true
 terminal(s::IO) = s
 terminal(s::PromptState) = s.terminal
 
-for f in [:terminal, :edit_insert, :on_enter, :add_history, :buffer, :edit_backspace, :(Base.isempty),
-        :replace_line, :refresh_multi_line, :input_string, :edit_move_left, :edit_move_right,
-        :edit_move_word_left, :edit_move_word_right, :update_display_buffer]
+for f in [:terminal, :edit_insert, :edit_insert_newline, :on_enter, :add_history,
+          :buffer, :edit_backspace, :(Base.isempty), :replace_line, :refresh_multi_line,
+          :input_string, :edit_move_left, :edit_move_right,
+          :edit_move_word_left, :edit_move_word_right, :update_display_buffer]
     @eval ($f)(s::MIState, args...) = $(f)(s.mode_state[s.current_mode], args...)
 end
 
@@ -271,7 +272,7 @@ end
 
 
 # Edit functionality
-is_non_word_char(c) = c in " \t\n\"\\'`@\$><=:;|&{}()[].,+-*/?%^~"
+is_non_word_char(c) = c in """ \t\n\"\\'`@\$><=:;|&{}()[].,+-*/?%^~"""
 
 function reset_key_repeats(f::Function, s::MIState)
     key_repeats_sav = s.key_repeats
@@ -473,6 +474,14 @@ function edit_insert(buf::IOBuffer, c)
         splice_buffer!(buf, position(buf):position(buf)-1, s)
         return sizeof(s)
     end
+end
+
+function edit_insert_newline(s::PromptState)
+    buf = buffer(s)
+    beg = rsearch(buf.data, '\n', position(buf))
+    align = findnext(c -> c != UInt8(' '), buf.data, beg+1) - 1 - beg
+    edit_insert(buf, '\n' * ' '^align)
+    refresh_line(s)
 end
 
 function edit_backspace(s::PromptState)
@@ -1354,7 +1363,7 @@ AnyDict(
             commit_line(s)
             return :done
         else
-            edit_insert(s, '\n')
+            edit_insert_newline(s)
         end
     end,
     '\n' => KeyAlias('\r'),
@@ -1388,7 +1397,7 @@ AnyDict(
     # Ctrl-Right Arrow on rxvt
     "\eOc" => "\ef",
     # Meta Enter
-    "\e\r" => (s,o...)->(edit_insert(s, '\n')),
+    "\e\r" => (s,o...)->edit_insert_newline(s),
     "\e\n" => "\e\r",
     # Simply insert it into the buffer by default
     "*" => (s,data,c)->(edit_insert(s, c)),

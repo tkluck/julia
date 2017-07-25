@@ -401,3 +401,19 @@ let
         Base.LineEdit.InputAreaState(0,0), "julia> ", indent = 7)
     @test s == Base.LineEdit.InputAreaState(3,1)
 end
+
+@testset "newline alignment feature" begin
+    term = TestHelpers.FakeTerminal(IOBuffer(), IOBuffer(), IOBuffer())
+    s = LineEdit.init_state(term, ModalInterface([Prompt("test> ")]))
+    function bufferdata(s)
+        buf = LineEdit.buffer(s)
+        String(buf.data[1:buf.size])
+    end
+
+    LineEdit.edit_insert(s, "for x=1:10\n    a = 1")
+    LineEdit.edit_insert_newline(s)
+    @test bufferdata(s) == "for x=1:10\n    a = 1\n    "
+    LineEdit.edit_insert(s, " b = 2")
+    LineEdit.edit_insert_newline(s)
+    @test bufferdata(s) == "for x=1:10\n    a = 1\n     b = 2\n     "
+end
