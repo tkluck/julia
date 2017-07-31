@@ -15,16 +15,16 @@ import
 export # also exported by Base
     # order-only:
     issorted,
-    select,
-    select!,
+    partialsort,
+    partialsort!,
     searchsorted,
     searchsortedfirst,
     searchsortedlast,
     # order & algorithm:
     sort,
     sort!,
-    selectperm,
-    selectperm!,
+    partialsortperm,
+    partialsortperm!,
     sortperm,
     sortperm!,
     sortrows,
@@ -82,16 +82,17 @@ issorted(itr;
     lt=isless, by=identity, rev::Bool=false, order::Ordering=Forward) =
     issorted(itr, ord(lt,by,rev,order))
 
-function select!(v::AbstractVector, k::Union{Int,OrdinalRange}, o::Ordering)
+function partialsort!(v::AbstractVector, k::Union{Int,OrdinalRange}, o::Ordering)
     inds = indices(v, 1)
     sort!(v, first(inds), last(inds), PartialQuickSort(k), o)
     v[k]
 end
-select!(v::AbstractVector, k::Union{Int,OrdinalRange};
+partialsort!(v::AbstractVector, k::Union{Int,OrdinalRange};
     lt=isless, by=identity, rev::Bool=false, order::Ordering=Forward) =
-    select!(v, k, ord(lt,by,rev,order))
+    partialsort!(v, k, ord(lt,by,rev,order))
 
-select(v::AbstractVector, k::Union{Int,OrdinalRange}; kws...) = select!(copymutable(v), k; kws...)
+partialsort(v::AbstractVector, k::Union{Int,OrdinalRange}; kws...) =
+    partialsort!(copymutable(v), k; kws...)
 
 
 # reference on sorted binary search:
@@ -609,18 +610,18 @@ julia> v
 """
 sort(v::AbstractVector; kws...) = sort!(copymutable(v); kws...)
 
-## selectperm: the permutation to sort the first k elements of an array ##
+## partialsortperm: the permutation to sort the first k elements of an array ##
 
-selectperm(v::AbstractVector, k::Union{Integer,OrdinalRange}; kwargs...) =
-    selectperm!(similar(Vector{eltype(k)}, indices(v,1)), v, k; kwargs..., initialized=false)
+partialsortperm(v::AbstractVector, k::Union{Integer,OrdinalRange}; kwargs...) =
+    partialsortperm!(similar(Vector{eltype(k)}, indices(v,1)), v, k; kwargs..., initialized=false)
 
-function selectperm!(ix::AbstractVector{<:Integer}, v::AbstractVector,
-                     k::Union{Int, OrdinalRange};
-                     lt::Function=isless,
-                     by::Function=identity,
-                     rev::Bool=false,
-                     order::Ordering=Forward,
-                     initialized::Bool=false)
+function partialsortperm!(ix::AbstractVector{<:Integer}, v::AbstractVector,
+                          k::Union{Int, OrdinalRange};
+                          lt::Function=isless,
+                          by::Function=identity,
+                          rev::Bool=false,
+                          order::Ordering=Forward,
+                          initialized::Bool=false)
     if !initialized
         @inbounds for i = indices(ix,1)
             ix[i] = i

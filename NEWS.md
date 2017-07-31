@@ -280,6 +280,9 @@ Deprecated or removed
   * Calling `union` with no arguments is deprecated; construct an empty set with an appropriate
     element type using `Set{T}()` instead ([#23144]).
 
+  * `select`, `select!`, `selectperm` and `selectperm!` have been renamed respectively to
+    `partialsort`, `partialsort!`, `partialsortperm` and `partialsortperm!` ([#23051]).
+
 Julia v0.6.0 Release Notes
 ==========================
 
