@@ -1696,6 +1696,43 @@
                                             `(call (top next) ,coll ,state))
                    ,body))))))))
 
+;(define (expand-for while lhs X body)
+;  ;; (for (= lhs X) body)
+;  (let ((coll  (make-ssavalue))
+;        (state (make-ssavalue))
+;        (next (gensy)))
+;    `(scope-block
+;      (block (= ,coll ,(expand-forms X))
+;             (= ,next (call (top iterate) ,coll))
+;             ,(expand-forms
+;               `(,while
+;                 (call (|.| (core Intrinsics) 'not_int) (call (core ===) ,next (null)))
+;                 (scope-block
+;                  (block
+;                   (= ,lhs (call (core getfield) ,next 1))
+;                   ,body
+;                   (= ,state (call (core getfield) ,next 2))
+;                   (= ,next (call (top iterate) ,coll ,state))))))))))
+
+;(define (expand-for while lhs X body)
+;  ;; (for (= lhs X) body)
+;  (let ((coll  (make-ssavalue))
+;        (state (gensy))
+;        (next (gensy)))
+;    `(scope-block
+;      (block (= ,coll ,(expand-forms X))
+;             ,(lower-tuple-assignment (list next state)
+;                                      `(call (top iterate) ,coll))
+;             ,(expand-forms
+;               `(,while
+;                 (call (|.| (core Intrinsics) 'not_int) (call (core ===) ,state (null)))
+;                 (scope-block
+;                  (block
+;                   (= ,lhs ,next)
+;                   ,body
+;                   ,(lower-tuple-assignment (list next state)
+;                                            `(call (top iterate) ,coll ,state))))))))))
+
 ;; convert an operator parsed as (op a b) to (call op a b)
 (define (syntactic-op-to-call e)
   `(call ,(car e) ,@(map expand-forms (cdr e))))

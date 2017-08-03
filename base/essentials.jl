@@ -70,6 +70,18 @@ convert(::Type{Tuple{Vararg{T}}}, x::Tuple) where {T} = cnvt_all(T, x...)
 cnvt_all(T) = ()
 cnvt_all(T, x, rest...) = tuple(convert(T,x), cnvt_all(T, rest...)...)
 
+# iteration
+
+function start end
+function next end
+function done end
+function iterate(x, state)
+    @_inline_meta
+    done(x, state) && return (nothing, nothing)
+    return next(x, state)
+end
+iterate(x) = (@_inline_meta; iterate(x, start(x)))
+
 """
     @eval [mod,] ex
 
