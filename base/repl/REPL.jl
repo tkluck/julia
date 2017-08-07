@@ -850,6 +850,7 @@ function setup_interface(
                 edit_insert(s, input)
                 return
             end
+            LineEdit.push_undo(s)
             edit_insert(sbuffer, input)
             input = String(take!(sbuffer))
             oldpos = start(input)
@@ -890,7 +891,7 @@ function setup_interface(
                         # (avoids modifying the user's current leading wip line)
                         tail = lstrip(tail)
                     end
-                    LineEdit.replace_line(s, tail)
+                    LineEdit.replace_line(s, tail, true)
                     LineEdit.refresh_line(s)
                     break
                 end
