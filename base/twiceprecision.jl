@@ -35,9 +35,20 @@ struct TwicePrecision{T}
     lo::T    # least significant bits
 end
 
-function TwicePrecision{T}(nd::Tuple{I,I}) where {T,I}
+function TwicePrecision{T}(x) where T
+    xT = convert(T, x)
+    Δx = x - xT
+    TwicePrecision{T}(xT, T(Δx))
+end
+
+function TwicePrecision{T}(nd::Tuple{Integer,Integer}) where {T<:Union{Float16,Float32}}
     n, d = nd
-    TwicePrecision{T}(n, zero(T)) / d
+    TwicePrecision{T}(n/d)
+end
+
+function TwicePrecision{T}(nd::Tuple{Any,Any}) where {T}
+    n, d = nd
+    TwicePrecision{T}(n) / d
 end
 
 function TwicePrecision{T}(nd::Tuple{I,I}, nb::Integer) where {T,I}
@@ -391,10 +402,8 @@ function linspace(::Type{T}, start_n::Integer, stop_n::Integer, len::Integer, de
     imin = clamp(imin, 1, Int(len))
     ref_num = Int128(len-imin) * start_n + Int128(imin-1) * stop_n
     ref_denom = Int128(len-1) * den
-    ref = ratio128(T, ref_num, ref_denom)
-    # Compute step to 2x precision without risking overflow...
-    step_full = ratio128(T, Int128(stop_n) - Int128(start_n), ref_denom)
-    # ...and truncate hi-bits as needed
+    ref = TwicePrecision{T}((ref_num, ref_denom))
+    step_full = TwicePrecision{T}((Int128(stop_n) - Int128(start_n), ref_denom))
     step = twiceprecision(step_full, nbitslen(T, len, imin))
     StepRangeLen(ref, step, Int(len), imin)
 end
@@ -462,6 +471,8 @@ end
 _add2(x::T, y::T) where {T<:TwicePrecision} = x + y
 _add2(x::TwicePrecision, y::TwicePrecision) = TwicePrecision(x.hi+y.hi, x.lo+y.lo)
 
+-(x::TwicePrecision, y::TwicePrecision) = x + (-y)
+
 function *(x::TwicePrecision, v::Integer)
     v == 0 && return TwicePrecision(x.hi*v, x.lo*v)
     nb = ceil(Int, log2(abs(v)))
@@ -470,7 +481,7 @@ function *(x::TwicePrecision, v::Integer)
     TwicePrecision(y_hi, y_lo)
 end
 
-function _mul2(x::TwicePrecision{T}, v::T) where T<:Union{Float16,Float32,Float64}
+function _mul2(x::TwicePrecision{T}, v::T) where {T<:Union{Float16,Float32,Float64}}
     v == 0 && return TwicePrecision(T(0), T(0))
     xhh, xhl = splitprec(x.hi)
     vh, vl = splitprec(v)
@@ -487,39 +498,34 @@ end
 
 *(v::Number, x::TwicePrecision) = x*v
 
-function /(x::TwicePrecision, v::Number)
+function *(x::TwicePrecision{T}, y::TwicePrecision{T}) where {T<:Union{Float16,Float32,Float64}}
+    xh, xl = splitprec(x.hi)
+    yh, yl = splitprec(y.hi)
+    z = x.hi * y.hi
+    ch, cl = add2(z, ((xh*yh - z) + xh*yl + xl*yh) + xl*yl)
+    TwicePrecision{T}(add2(ch, (x.hi * y.lo + x.lo * y.hi) + cl)...)
+end
+
+function /(x::TwicePrecision, v)
     hi = x.hi/v
-    w = TwicePrecision(hi, zero(hi)) * v
+    _div2(x, hi, v)
+end
+
+function _div2(x::TwicePrecision, hi::T, v) where {T<:Union{Float16,Float32,Float64}}
+    w = TwicePrecision(hi, zero(hi)) * TwicePrecision{T}(v)
     lo = (((x.hi - w.hi) - w.lo) + x.lo)/v
     y_hi, y_lo = add2(hi, lo)
     TwicePrecision(y_hi, y_lo)
 end
 
-function ratio128(::Type{T}, num, denom) where T<:Union{Float16,Float32}
-    r_hi = T(Float64(num)/denom)
-    rem = num - Float64(r_hi)*denom
-    r_lo = T(rem/denom)
-    TwicePrecision{T}(r_hi, r_lo)
-end
-ratio128(::Type{T}, num, denom) where T = TwicePrecision{T}((num, denom))
+_div2(x::TwicePrecision, hi, v) = TwicePrecision(hi, x.lo/v)
 
-# hi-precision version of prod(num)/prod(den)
-# num and den are tuples to avoid risk of overflow
-function proddiv(T, num, den)
-    @_inline_meta
-    t = TwicePrecision(T(num[1]), zero(T))
-    t = _prod(t, tail(num)...)
-    _divt(t, den...)
-end
 function _prod(t::TwicePrecision, x, y...)
     @_inline_meta
     _prod(t * x, y...)
 end
 _prod(t::TwicePrecision) = t
-function _divt(t::TwicePrecision, x, y...)
-    @_inline_meta
-    _divt(t / x, y...)
-end
-_divt(t::TwicePrecision) = t
+<(x::TwicePrecision{T}, y::TwicePrecision{T}) where {T} =
+    x.hi < y.hi || ((x.hi == y.hi) & (x.lo < y.lo))
 
 isbetween(a, x, b) = a <= x <= b || b <= x <= a

@@ -826,8 +826,8 @@ fpinttype(::Type{Float32}) = UInt32
 fpinttype(::Type{Float16}) = UInt16
 
 ## TwicePrecision utilities
-# The numeric constants are half the number of bits in the mantissa
-for (F, T, n) in ((Float16, UInt16, 5), (Float32, UInt32, 12), (Float64, UInt64, 26))
+# The numeric constants are half the number of precision bits in the significand
+for (F, T, n) in ((Float16, UInt16, 6), (Float32, UInt32, 12), (Float64, UInt64, 27))
     @eval begin
         function truncbits(x::$F, nb)
             @_inline_meta
@@ -839,7 +839,9 @@ for (F, T, n) in ((Float16, UInt16, 5), (Float32, UInt32, 12), (Float64, UInt64,
         end
         function splitprec(x::$F)
             @_inline_meta
-            hi = truncmask(x, typemax($T) << $n)
+            xs1 = reinterpret($T, x) >> $(n-1)
+            xs = (xs1 >> 1) + isodd(xs1)
+            hi = reinterpret($F, xs << $n)
             hi, x-hi
         end
     end
