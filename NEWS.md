@@ -136,6 +136,10 @@ This section lists changes that do not have deprecation warnings.
   * Worker-worker connections are setup lazily for an `:all_to_all` topology. Use keyword
     arg `lazy=false` to force all connections to be setup during a `addprocs` call. ([#22814])
 
+  * The element type of the input is now preserved in `unique`. Previously the element type
+    of the output was shrunk to fit the union of the type of each element in the input.
+    ([#22696])
+
 Library improvements
 --------------------
 
@@ -1134,6 +1138,7 @@ Command-line option changes
 [#22588]: https://github.com/JuliaLang/julia/issues/22588
 [#22605]: https://github.com/JuliaLang/julia/issues/22605
 [#22666]: https://github.com/JuliaLang/julia/issues/22666
+[#22696]: https://github.com/JuliaLang/julia/issues/22696
 [#22703]: https://github.com/JuliaLang/julia/issues/22703
 [#22712]: https://github.com/JuliaLang/julia/issues/22712
 [#22718]: https://github.com/JuliaLang/julia/issues/22718
