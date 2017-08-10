@@ -581,3 +581,16 @@ end
 
 # this shouldn't crash (#22403)
 @test_throws MethodError rand!(Union{UInt,Int}[1, 2, 3])
+
+let # change the global RNG" # note: this doesn't work in a @testset
+    @test srand() === Base.Random.GLOBAL_RNG
+    rng1 = RandomDevice()
+    Base.Random.globalRNG() = rng1
+    @test_throws MethodError srand()
+    Base.Random.globalRNG() = MersenneTwister(0)
+    @test rand(Int) == 4439861565447045202
+    @test rand(Int) == 4439861565447045202 # each call creates a new RNG
+    rng2 = MersenneTwister(0)
+    Base.Random.globalRNG() = rng2
+    @test srand() === rng2 !== Base.Random.GLOBAL_RNG
+end

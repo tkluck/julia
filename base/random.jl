@@ -17,7 +17,7 @@ export srand,
        randperm, randperm!,
        randcycle, randcycle!,
        AbstractRNG, MersenneTwister, RandomDevice,
-       GLOBAL_RNG, randjump
+       GLOBAL_RNG, globalRNG, randjump
 
 
 abstract type AbstractRNG end
@@ -241,8 +241,8 @@ end
 ## srand()
 
 """
-    srand([rng=GLOBAL_RNG], seed) -> rng
-    srand([rng=GLOBAL_RNG]) -> rng
+    srand([rng=globalRNG()], seed) -> rng
+    srand([rng=globalRNG()]) -> rng
 
 Reseed the random number generator. If a `seed` is provided, the RNG will give a
 reproducible sequence of numbers, otherwise Julia will get entropy from the system. For
@@ -275,17 +275,17 @@ srand(r::MersenneTwister, n::Integer) = srand(r, make_seed(n))
 
 function dsfmt_gv_srand()
     # Temporary fix for #8874 and #9124: update global RNG for Rmath
-    dsfmt_gv_init_by_array(GLOBAL_RNG.seed+UInt32(1))
-    return GLOBAL_RNG
+    dsfmt_gv_init_by_array(globalRNG().seed+UInt32(1))
+    return globalRNG()
 end
 
 function srand()
-    srand(GLOBAL_RNG)
+    srand(globalRNG())
     dsfmt_gv_srand()
 end
 
 function srand(seed::Union{Integer,Vector{UInt32}})
-    srand(GLOBAL_RNG, seed)
+    srand(globalRNG(), seed)
     dsfmt_gv_srand()
 end
 
@@ -294,10 +294,10 @@ end
 const GLOBAL_RNG = MersenneTwister(0)
 globalRNG() = GLOBAL_RNG
 
-# rand: a non-specified RNG defaults to GLOBAL_RNG
+# rand: a non-specified RNG defaults to globalRNG()
 
 """
-    rand([rng=GLOBAL_RNG], [S], [dims...])
+    rand([rng=globalRNG()], [S], [dims...])
 
 Pick a random element or array of random elements from the set of values specified by `S`; `S` can be
 
@@ -329,18 +329,18 @@ julia> rand(MersenneTwister(0), Dict(1=>2, 3=>4))
     collect(s))` instead, or either `rand(rng, Dict(s))` or `rand(rng,
     Set(s))` as appropriate.
 """
-@inline rand() = rand(GLOBAL_RNG, CloseOpen)
-@inline rand(T::Type) = rand(GLOBAL_RNG, T)
-rand(dims::Dims) = rand(GLOBAL_RNG, dims)
+@inline rand() = rand(globalRNG(), CloseOpen)
+@inline rand(T::Type) = rand(globalRNG(), T)
+rand(dims::Dims) = rand(globalRNG(), dims)
 rand(dims::Integer...) = rand(convert(Dims, dims))
-rand(T::Type, dims::Dims) = rand(GLOBAL_RNG, T, dims)
+rand(T::Type, dims::Dims) = rand(globalRNG(), T, dims)
 rand(T::Type, d1::Integer, dims::Integer...) = rand(T, tuple(Int(d1), convert(Dims, dims)...))
-rand!(A::AbstractArray) = rand!(GLOBAL_RNG, A)
+rand!(A::AbstractArray) = rand!(globalRNG(), A)
 
-rand(r::AbstractArray) = rand(GLOBAL_RNG, r)
+rand(r::AbstractArray) = rand(globalRNG(), r)
 
 """
-    rand!([rng=GLOBAL_RNG], A, [S=eltype(A)])
+    rand!([rng=globalRNG()], A, [S=eltype(A)])
 
 Populate the array `A` with random values. If `S` is specified
 (`S` can be a type or a collection, cf. [`rand`](@ref) for details),
@@ -361,10 +361,10 @@ julia> rand!(rng, zeros(5))
  0.794026
 ```
 """
-rand!(A::AbstractArray, r::AbstractArray) = rand!(GLOBAL_RNG, A, r)
+rand!(A::AbstractArray, r::AbstractArray) = rand!(globalRNG(), A, r)
 
-rand(r::AbstractArray, dims::Dims) = rand(GLOBAL_RNG, r, dims)
-rand(r::AbstractArray, dims::Integer...) = rand(GLOBAL_RNG, r, convert(Dims, dims))
+rand(r::AbstractArray, dims::Dims) = rand(globalRNG(), r, dims)
+rand(r::AbstractArray, dims::Integer...) = rand(globalRNG(), r, convert(Dims, dims))
 
 ## random floating point values
 
@@ -454,7 +454,7 @@ nth(iter::AbstractArray, n::Integer) = iter[n]
 
 rand(r::AbstractRNG, s::Union{Associative,AbstractSet}) = nth(s, rand(r, 1:length(s)))
 
-rand(s::Union{Associative,AbstractSet}) = rand(GLOBAL_RNG, s)
+rand(s::Union{Associative,AbstractSet}) = rand(globalRNG(), s)
 
 ## Arrays of random numbers
 
@@ -474,7 +474,7 @@ function rand!(r::AbstractRNG, A::AbstractArray{T}, ::Type{X}=T) where {T,X}
     A
 end
 
-rand!(A::AbstractArray, ::Type{X}) where {X} = rand!(GLOBAL_RNG, A, X)
+rand!(A::AbstractArray, ::Type{X}) where {X} = rand!(globalRNG(), A, X)
 
 function rand!(r::AbstractRNG, A::AbstractArray, s::Union{Dict,Set,IntSet})
     for i in eachindex(A)
@@ -486,13 +486,13 @@ end
 # avoid linear complexity for repeated calls with generic containers
 rand!(r::AbstractRNG, A::AbstractArray, s::Union{Associative,AbstractSet}) = rand!(r, A, collect(s))
 
-rand!(A::AbstractArray, s::Union{Associative,AbstractSet}) = rand!(GLOBAL_RNG, A, s)
+rand!(A::AbstractArray, s::Union{Associative,AbstractSet}) = rand!(globalRNG(), A, s)
 
 rand(r::AbstractRNG, s::Associative{K,V}, dims::Dims) where {K,V} = rand!(r, Array{Pair{K,V}}(dims), s)
 rand(r::AbstractRNG, s::AbstractSet{T}, dims::Dims) where {T} = rand!(r, Array{T}(dims), s)
 rand(r::AbstractRNG, s::Union{Associative,AbstractSet}, dims::Integer...) = rand(r, s, convert(Dims, dims))
-rand(s::Union{Associative,AbstractSet}, dims::Integer...) = rand(GLOBAL_RNG, s, convert(Dims, dims))
-rand(s::Union{Associative,AbstractSet}, dims::Dims) = rand(GLOBAL_RNG, s, dims)
+rand(s::Union{Associative,AbstractSet}, dims::Integer...) = rand(globalRNG(), s, convert(Dims, dims))
+rand(s::Union{Associative,AbstractSet}, dims::Dims) = rand(globalRNG(), s, dims)
 
 # MersenneTwister
 
@@ -784,17 +784,17 @@ function rand(rng::AbstractRNG, s::AbstractString)::Char
     end
 end
 
-rand(s::AbstractString) = rand(GLOBAL_RNG, s)
+rand(s::AbstractString) = rand(globalRNG(), s)
 
 ## rand from a string for arrays
 # we use collect(str), which is most of the time more efficient than specialized methods
 # (except maybe for very small arrays)
 rand!(rng::AbstractRNG, A::AbstractArray, str::AbstractString) = rand!(rng, A, collect(str))
-rand!(A::AbstractArray, str::AbstractString) = rand!(GLOBAL_RNG, A, str)
+rand!(A::AbstractArray, str::AbstractString) = rand!(globalRNG(), A, str)
 rand(rng::AbstractRNG, str::AbstractString, dims::Dims) = rand!(rng, Array{eltype(str)}(dims), str)
 rand(rng::AbstractRNG, str::AbstractString, d1::Integer, dims::Integer...) = rand(rng, str, convert(Dims, tuple(d1, dims...)))
-rand(str::AbstractString, dims::Dims) = rand(GLOBAL_RNG, str, dims)
-rand(str::AbstractString, d1::Integer, dims::Integer...) = rand(GLOBAL_RNG, str, d1, dims...)
+rand(str::AbstractString, dims::Dims) = rand(globalRNG(), str, dims)
+rand(str::AbstractString, d1::Integer, dims::Integer...) = rand(globalRNG(), str, d1, dims...)
 
 ## random BitArrays (AbstractRNG)
 
@@ -807,7 +807,7 @@ function rand!(rng::AbstractRNG, B::BitArray)
 end
 
 """
-    bitrand([rng=GLOBAL_RNG], [dims...])
+    bitrand([rng=globalRNG()], [dims...])
 
 Generate a `BitArray` of random boolean values.
 
@@ -1330,7 +1330,7 @@ const ziggurat_nor_inv_r  = inv(ziggurat_nor_r)
 const ziggurat_exp_r      = 7.6971174701310497140446280481
 
 """
-    randn([rng=GLOBAL_RNG], [T=Float64], [dims...])
+    randn([rng=globalRNG()], [T=Float64], [dims...])
 
 Generate a normally-distributed random number of type `T` with mean 0 and standard deviation 1.
 Optionally generate an array of normally-distributed random numbers.
@@ -1352,7 +1352,7 @@ julia> randn(rng, Complex64, (2, 3))
   0.611224+1.56403im   0.355204-0.365563im  0.0905552+1.31012im
 ```
 """
-@inline function randn(rng::AbstractRNG=GLOBAL_RNG)
+@inline function randn(rng::AbstractRNG=globalRNG())
     @inbounds begin
         r = rand_ui52(rng)
         rabs = Int64(r>>1) # One bit for the sign
@@ -1379,7 +1379,7 @@ function randn_unlikely(rng, idx, rabs, x)
 end
 
 """
-    randexp([rng=GLOBAL_RNG], [T=Float64], [dims...])
+    randexp([rng=globalRNG()], [T=Float64], [dims...])
 
 Generate a random number of type `T` according to the exponential distribution with scale 1.
 Optionally generate an array of such random numbers.
@@ -1400,7 +1400,7 @@ julia> randexp(rng, 3, 3)
  0.695867  0.693292  0.643644
 ```
 """
-@inline function randexp(rng::AbstractRNG=GLOBAL_RNG)
+@inline function randexp(rng::AbstractRNG=globalRNG())
     @inbounds begin
         ri = rand_ui52(rng)
         idx = ri & 0xFF
@@ -1421,7 +1421,7 @@ function randexp_unlikely(rng, idx, x)
 end
 
 """
-    randn!([rng=GLOBAL_RNG], A::AbstractArray) -> A
+    randn!([rng=globalRNG()], A::AbstractArray) -> A
 
 Fill the array `A` with normally-distributed (mean 0, standard deviation 1) random numbers.
 Also see the [`rand`](@ref) function.
@@ -1442,7 +1442,7 @@ julia> randn!(rng, zeros(5))
 function randn! end
 
 """
-    randexp!([rng=GLOBAL_RNG], A::AbstractArray) -> A
+    randexp!([rng=globalRNG()], A::AbstractArray) -> A
 
 Fill the array `A` with random numbers following the exponential distribution (with scale 1).
 
@@ -1467,7 +1467,7 @@ for randfun in [:randn, :randexp]
         # scalars
         $randfun(rng::AbstractRNG, T::Union{Type{Float16},Type{Float32},Type{Float64}}) =
             convert(T, $randfun(rng))
-        $randfun(::Type{T}) where {T} = $randfun(GLOBAL_RNG, T)
+        $randfun(::Type{T}) where {T} = $randfun(globalRNG(), T)
 
         # filling arrays
         function $randfun!(rng::AbstractRNG, A::AbstractArray{T}) where T
@@ -1477,18 +1477,18 @@ for randfun in [:randn, :randexp]
             A
         end
 
-        $randfun!(A::AbstractArray) = $randfun!(GLOBAL_RNG, A)
+        $randfun!(A::AbstractArray) = $randfun!(globalRNG(), A)
 
         # generating arrays
         $randfun(rng::AbstractRNG, ::Type{T}, dims::Dims                     ) where {T} = $randfun!(rng, Array{T}(dims))
         # Note that this method explicitly does not define $randfun(rng, T), in order to prevent an infinite recursion.
         $randfun(rng::AbstractRNG, ::Type{T}, dim1::Integer, dims::Integer...) where {T} = $randfun!(rng, Array{T}(dim1, dims...))
-        $randfun(                  ::Type{T}, dims::Dims                     ) where {T} = $randfun(GLOBAL_RNG, T, dims)
-        $randfun(                  ::Type{T}, dims::Integer...               ) where {T} = $randfun(GLOBAL_RNG, T, dims...)
+        $randfun(                  ::Type{T}, dims::Dims                     ) where {T} = $randfun(globalRNG(), T, dims)
+        $randfun(                  ::Type{T}, dims::Integer...               ) where {T} = $randfun(globalRNG(), T, dims...)
         $randfun(rng::AbstractRNG,            dims::Dims                     )           = $randfun(rng, Float64, dims)
         $randfun(rng::AbstractRNG,            dims::Integer...               )           = $randfun(rng, Float64, dims...)
-        $randfun(                             dims::Dims                     )           = $randfun(GLOBAL_RNG, Float64, dims)
-        $randfun(                             dims::Integer...               )           = $randfun(GLOBAL_RNG, Float64, dims...)
+        $randfun(                             dims::Dims                     )           = $randfun(globalRNG(), Float64, dims)
+        $randfun(                             dims::Integer...               )           = $randfun(globalRNG(), Float64, dims...)
     end
 end
 
@@ -1506,7 +1506,7 @@ struct UUID
 end
 
 """
-    uuid1([rng::AbstractRNG=GLOBAL_RNG]) -> UUID
+    uuid1([rng::AbstractRNG=globalRNG()]) -> UUID
 
 Generates a version 1 (time-based) universally unique identifier (UUID), as specified
 by RFC 4122. Note that the Node ID is randomly generated (does not identify the host)
@@ -1520,7 +1520,7 @@ julia> Base.Random.uuid1(rng)
 2cc938da-5937-11e7-196e-0f4ef71aa64b
 ```
 """
-function uuid1(rng::AbstractRNG=GLOBAL_RNG)
+function uuid1(rng::AbstractRNG=globalRNG())
     u = rand(rng, UInt128)
 
     # mask off clock sequence and node
@@ -1544,7 +1544,7 @@ function uuid1(rng::AbstractRNG=GLOBAL_RNG)
 end
 
 """
-    uuid4([rng::AbstractRNG=GLOBAL_RNG]) -> UUID
+    uuid4([rng::AbstractRNG=globalRNG()]) -> UUID
 
 Generates a version 4 (random or pseudo-random) universally unique identifier (UUID),
 as specified by RFC 4122.
@@ -1557,7 +1557,7 @@ julia> Base.Random.uuid4(rng)
 82015f10-44cc-4827-996e-0f4ef71aa64b
 ```
 """
-function uuid4(rng::AbstractRNG=GLOBAL_RNG)
+function uuid4(rng::AbstractRNG=globalRNG())
     u = rand(rng, UInt128)
     u &= 0xffffffffffff0fff3fffffffffffffff
     u |= 0x00000000000040008000000000000000
@@ -1617,7 +1617,7 @@ Base.show(io::IO, u::UUID) = write(io, Base.repr(u))
 # return a random string (often useful for temporary filenames/dirnames)
 
 """
-    randstring([rng=GLOBAL_RNG], [chars], [len=8])
+    randstring([rng=globalRNG()], [chars], [len=8])
 
 Create a random string of length `len`, consisting of characters from
 `chars`, which defaults to the set of upper- and lower-case letters
@@ -1647,8 +1647,8 @@ let b = UInt8['0':'9';'A':'Z';'a':'z']
     global randstring
     randstring(r::AbstractRNG, chars=b, n::Integer=8) = String(rand(r, chars, n))
     randstring(r::AbstractRNG, n::Integer) = randstring(r, b, n)
-    randstring(chars=b, n::Integer=8) = randstring(GLOBAL_RNG, chars, n)
-    randstring(n::Integer) = randstring(GLOBAL_RNG, b, n)
+    randstring(chars=b, n::Integer=8) = randstring(globalRNG(), chars, n)
+    randstring(n::Integer) = randstring(globalRNG(), b, n)
 end
 
 # Fill S (resized as needed) with a random subsequence of A, where
@@ -1689,7 +1689,7 @@ function randsubseq!(r::AbstractRNG, S::AbstractArray, A::AbstractArray, p::Real
     end
     return S
 end
-randsubseq!(S::AbstractArray, A::AbstractArray, p::Real) = randsubseq!(GLOBAL_RNG, S, A, p)
+randsubseq!(S::AbstractArray, A::AbstractArray, p::Real) = randsubseq!(globalRNG(), S, A, p)
 
 randsubseq(r::AbstractRNG, A::AbstractArray{T}, p::Real) where {T} = randsubseq!(r, T[], A, p)
 
@@ -1701,7 +1701,7 @@ element of `A` is included (in order) with independent probability `p`. (Complex
 linear in `p*length(A)`, so this function is efficient even if `p` is small and `A` is
 large.) Technically, this process is known as "Bernoulli sampling" of `A`.
 """
-randsubseq(A::AbstractArray, p::Real) = randsubseq(GLOBAL_RNG, A, p)
+randsubseq(A::AbstractArray, p::Real) = randsubseq(globalRNG(), A, p)
 
 "Return a random `Int` (masked with `mask`) in ``[0, n)``, when `n <= 2^52`."
 @inline function rand_lt(r::AbstractRNG, n::Int, mask::Int=nextpow2(n)-1)
@@ -1714,7 +1714,7 @@ randsubseq(A::AbstractArray, p::Real) = randsubseq(GLOBAL_RNG, A, p)
 end
 
 """
-    shuffle!([rng=GLOBAL_RNG,] v::AbstractArray)
+    shuffle!([rng=globalRNG(),] v::AbstractArray)
 
 In-place version of [`shuffle`](@ref): randomly permute `v` in-place,
 optionally supplying the random-number generator `rng`.
@@ -1755,10 +1755,10 @@ function shuffle!(r::AbstractRNG, a::AbstractArray)
     return a
 end
 
-shuffle!(a::AbstractArray) = shuffle!(GLOBAL_RNG, a)
+shuffle!(a::AbstractArray) = shuffle!(globalRNG(), a)
 
 """
-    shuffle([rng=GLOBAL_RNG,] v::AbstractArray)
+    shuffle([rng=globalRNG(),] v::AbstractArray)
 
 Return a randomly permuted copy of `v`. The optional `rng` argument specifies a random
 number generator (see [Random Numbers](@ref)).
@@ -1784,10 +1784,10 @@ julia> shuffle(rng, collect(1:10))
 ```
 """
 shuffle(r::AbstractRNG, a::AbstractArray) = shuffle!(r, copymutable(a))
-shuffle(a::AbstractArray) = shuffle(GLOBAL_RNG, a)
+shuffle(a::AbstractArray) = shuffle(globalRNG(), a)
 
 """
-    randperm([rng=GLOBAL_RNG,] n::Integer)
+    randperm([rng=globalRNG(),] n::Integer)
 
 Construct a random permutation of length `n`. The optional `rng` argument specifies a random
 number generator (see [Random Numbers](@ref)).
@@ -1805,10 +1805,10 @@ julia> randperm(MersenneTwister(1234), 4)
 ```
 """
 randperm(r::AbstractRNG, n::Integer) = randperm!(r, Vector{Int}(n))
-randperm(n::Integer) = randperm(GLOBAL_RNG, n)
+randperm(n::Integer) = randperm(globalRNG(), n)
 
 """
-    randperm!([rng=GLOBAL_RNG,] A::Array{<:Integer})
+    randperm!([rng=globalRNG(),] A::Array{<:Integer})
 
 Construct in `A` a random permutation of length `length(A)`. The
 optional `rng` argument specifies a random number generator (see
@@ -1842,11 +1842,11 @@ function randperm!(r::AbstractRNG, a::Array{<:Integer})
     return a
 end
 
-randperm!(a::Array{<:Integer}) = randperm!(GLOBAL_RNG, a)
+randperm!(a::Array{<:Integer}) = randperm!(globalRNG(), a)
 
 
 """
-    randcycle([rng=GLOBAL_RNG,] n::Integer)
+    randcycle([rng=globalRNG(),] n::Integer)
 
 Construct a random cyclic permutation of length `n`. The optional `rng`
 argument specifies a random number generator, see [Random Numbers](@ref).
@@ -1864,10 +1864,10 @@ julia> randcycle(MersenneTwister(1234), 6)
 ```
 """
 randcycle(r::AbstractRNG, n::Integer) = randcycle!(r, Vector{Int}(n))
-randcycle(n::Integer) = randcycle(GLOBAL_RNG, n)
+randcycle(n::Integer) = randcycle(globalRNG(), n)
 
 """
-    randcycle!([rng=GLOBAL_RNG,] A::Array{<:Integer})
+    randcycle!([rng=globalRNG(),] A::Array{<:Integer})
 
 Construct in `A` a random cyclic permutation of length `length(A)`.
 The optional `rng` argument specifies a random number generator, see
@@ -1900,6 +1900,6 @@ function randcycle!(r::AbstractRNG, a::Array{<:Integer})
     return a
 end
 
-randcycle!(a::Array{<:Integer}) = randcycle!(GLOBAL_RNG, a)
+randcycle!(a::Array{<:Integer}) = randcycle!(globalRNG(), a)
 
 end # module
