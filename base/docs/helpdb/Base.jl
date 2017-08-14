@@ -2197,3 +2197,43 @@ julia> B = Array{Float64}(2) # N determined by the input
 ```
 """
 Array{T,N}(dims)
+
+"""
+    ArgumentError(msg)
+
+The parameters to a function call do not match a valid signature. Argument `msg` is a
+descriptive error string.
+"""
+ArgumentError
+
+"""
+    MethodError(f, args)
+
+A method with the required type signature does not exist in the given generic function.
+Alternatively, there is no unique most-specific method.
+"""
+MethodError
+
+"""
+    AssertionError([msg])
+
+The asserted condition did not evaluate to `true`.
+Optional argument `msg` is a descriptive error string.
+"""
+AssertionError
+
+"""
+    LoadError(file::AbstractString, line::Int, error)
+
+An error occurred while `include`ing, `require`ing, or `using` a file. The error specifics
+should be available in the `.error` field.
+"""
+LoadError
+
+"""
+    InitError(mod::Symbol, error)
+
+An error occurred when running a module's `__init__` function. The actual error thrown is
+available in the `.error` field.
+"""
+InitError
