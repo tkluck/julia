@@ -771,19 +771,26 @@ macro iter()
 end
 end
 let ex = expand(M16096, :(@iter))
-    @test isa(ex, Expr) && ex.head === :body
+    @test isa(ex, Expr) && ex.head === :thunk
 end
 let ex = expand(Main, :($M16096.@iter))
-    @test isa(ex, Expr) && ex.head === :body
+    @test isa(ex, Expr) && ex.head === :thunk
 end
 let ex = expand(@__MODULE__, :(@M16096.iter))
-    @test isa(ex, Expr) && ex.head === :body
+    @test isa(ex, Expr) && ex.head === :thunk
     @test !isdefined(M16096, :foo16096)
-    @test eval(@__MODULE__, ex) === nothing
+    local_foo16096 = eval(@__MODULE__, ex)
+    @test local_foo16096(2.0) == 1
     @test !@isdefined foo16096
-    @test isdefined(M16096, :foo16096)
+    @test !@isdefined it
+    @test !isdefined(M16096, :foo16096)
+    @test !isdefined(M16096, :it)
+    @test_broken typeof(local_foo16096).name.module === M16096
+    @test_broken typeof(local_foo16096).name.mt.module === M16096
+    @test_broken getfield(M16096, typeof(local_foo16096).name.mt.name) === local_foo16096
+    @test_broken !isdefined(@__MODULE__, typeof(local_foo16096).name.mt.name)
 end
-@test M16096.foo16096(2.0) == 1
+
 macro f16096()
     quote
         g16096($(esc(:x))) = 2x
@@ -794,7 +801,7 @@ let g = @f16096
 end
 macro f16096_2()
     quote
-        g16096_2(;$(esc(:x))=2) = 2x
+        g16096_2(; $(esc(:x))=2) = 2x
     end
 end
 let g = @f16096_2
